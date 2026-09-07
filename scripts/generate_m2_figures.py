@@ -153,7 +153,7 @@ def make_figure5() -> None:
     ax.set_xlim(0, theta_max_deg * 1.05)
     ax.set_ylim(0, 90)
     ax.grid(alpha=0.3)
-    ax.legend(loc="center right", fontsize=8.5)
+    ax.legend(loc="lower right", fontsize=8.5)
 
     fig.tight_layout(rect=(0, 0.03, 1, 1))
     _stamp_caption(fig)
@@ -219,6 +219,12 @@ def make_figure6() -> None:
         fontsize=9,
         style="italic",
         color="0.3",
+        bbox={
+            "boxstyle": "round,pad=0.3",
+            "facecolor": "white",
+            "edgecolor": "0.75",
+            "alpha": 0.85,
+        },
     )
 
     fig.tight_layout(rect=(0, 0.03, 1, 0.97))
@@ -297,12 +303,14 @@ def make_figure7() -> None:
         fontsize=13,
     )
     fig.text(
-        0.5, 0.05,
+        0.5, 0.085,
         "Weak-shock compression is normally preferred for external hypersonic inlet "
-        "compression: comparable static compression at a fraction of the total-pressure loss.",
-        ha="center", fontsize=8.5, style="italic", color="0.3",
+        "compression:\n"
+        "it preserves far more total pressure, at the cost of substantially less "
+        "compression per shock.",
+        ha="center", va="bottom", fontsize=8.5, style="italic", color="0.3", linespacing=1.6,
     )
-    fig.tight_layout(rect=(0, 0.085, 1, 0.93))
+    fig.tight_layout(rect=(0, 0.13, 1, 0.93))
     _stamp_caption(fig)
     fig.savefig(FIGURES_DIR / "fig7_weak_vs_strong_vs_normal_M1_6_theta10.png", dpi=200)
     plt.close(fig)

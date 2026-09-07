@@ -120,13 +120,23 @@ def make_figure2() -> None:
     ax.grid(alpha=0.3)
     ax.legend(loc="upper right", fontsize=9)
     ax.text(
-        0.02,
-        0.05,
-        r"Note: $p_{0,2}/p_{0,1}$ is stagnation-pressure recovery, "
+        0.34,
+        0.42,
+        r"Note: $p_{0,2}/p_{0,1}$ is stagnation-pressure recovery,"
+        "\n"
         r"NOT the static ratio $p_2/p_1$ (which instead rises $>1$).",
         transform=ax.transAxes,
+        ha="center",
+        va="center",
         fontsize=8,
         color="0.3",
+        linespacing=1.6,
+        bbox={
+            "boxstyle": "round,pad=0.35",
+            "facecolor": "white",
+            "edgecolor": "0.75",
+            "alpha": 0.9,
+        },
     )
 
     fig.tight_layout(rect=(0, 0.03, 1, 1))
@@ -151,8 +161,8 @@ def make_figure3() -> None:
     V1 = float(velocity_from_mach(M1_REP, T1_REP, GAMMA, R))
     V2 = float(velocity_from_mach(M2, T2, GAMMA, R))
 
-    fig = plt.figure(figsize=(11.5, 6.2))
-    gs = fig.add_gridspec(2, 2, height_ratios=[2.4, 0.7], hspace=0.42, wspace=0.30)
+    fig = plt.figure(figsize=(11.5, 5.6))
+    gs = fig.add_gridspec(2, 2, height_ratios=[2.4, 0.7], hspace=0.12, wspace=0.30)
     ax_bar = fig.add_subplot(gs[0, 0])
     ax_M = fig.add_subplot(gs[0, 1])
     ax_text = fig.add_subplot(gs[1, :])
@@ -240,7 +250,7 @@ def make_figure3() -> None:
         rf"$T_1={T1_REP:g}\,\mathrm{{K}}$, $p_1={P1_REP:g}\,\mathrm{{Pa}}$",
         fontsize=13,
     )
-    fig.subplots_adjust(left=0.09, right=0.97, top=0.84, bottom=0.10)
+    fig.subplots_adjust(left=0.09, right=0.97, top=0.85, bottom=0.13)
     _stamp_caption(fig)
     fig.savefig(FIGURES_DIR / "fig3_representative_M1_6_state_comparison.png", dpi=200)
     plt.close(fig)
