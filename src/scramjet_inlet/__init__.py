@@ -19,6 +19,15 @@ from scramjet_inlet.gas_dynamics import (
     velocity_from_mach,
 )
 from scramjet_inlet.normal_shock import NormalShockResult, normal_shock
+from scramjet_inlet.oblique_shock import (
+    DetachmentLimit,
+    ObliqueShockResult,
+    detachment_limit,
+    mach_angle,
+    oblique_shock,
+    shock_angle,
+    theta_from_beta,
+)
 
 __all__ = [
     "DEFAULT_GAMMA",
@@ -32,4 +41,11 @@ __all__ = [
     "rho0_over_rho",
     "NormalShockResult",
     "normal_shock",
+    "DetachmentLimit",
+    "ObliqueShockResult",
+    "mach_angle",
+    "theta_from_beta",
+    "detachment_limit",
+    "shock_angle",
+    "oblique_shock",
 ]

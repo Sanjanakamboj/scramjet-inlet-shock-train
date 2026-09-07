@@ -102,13 +102,16 @@ Full derivation notes and source audit: [DESIGN.md](DESIGN.md).
 
 ```
 src/scramjet_inlet/
-    gas_dynamics.py   # perfect-gas thermodynamics + isentropic relations
-    normal_shock.py   # classical normal-shock relations
-tests/                # independent verification (63 tests)
+    gas_dynamics.py    # perfect-gas thermodynamics + isentropic relations
+    normal_shock.py    # classical normal-shock relations
+    oblique_shock.py   # theta-beta-M relation, single-ramp oblique shock
+tests/                 # independent verification (97 tests)
 scripts/
-    manual_check.py           # full M1=6 calculation, printed
+    manual_check.py           # full M1=6 normal-shock calculation, printed
     normal_shock_study.py     # M1 in [1.05, 8] sweep + sample table
-    generate_m1_figures.py    # regenerates figures/*.png deterministically
+    generate_m1_figures.py    # regenerates Milestone 1 figures/*.png
+    oblique_shock_study.py    # theta_max / weak-strong / M1=6 sweeps
+    generate_m2_figures.py    # regenerates Milestone 2 figures/*.png
 figures/               # generated PNGs (see below)
 DESIGN.md              # conventions, equations, source audit, verification
 README.md              # this file
@@ -183,3 +186,120 @@ Milestone 1 does **not** yet model:
 All results are for a generic, calorically-perfect-gas idealization and
 are not experimentally validated. See [DESIGN.md](DESIGN.md) for the
 full scope boundary, source audit, and verification strategy.
+
+---
+
+# Milestone 2 — Single-Ramp Oblique-Shock Compression
+
+## Objective
+
+Implement and independently verify the classical oblique-shock relations
+and the theta-beta-M relation for a **single** attached shock generated
+by one 2-D compression ramp: quantify compression and stagnation-
+pressure recovery vs. ramp angle and Mach number, and establish the
+weak/strong solution structure and detachment limit.
+
+**Milestone 2 is still NOT an inlet model.** No multi-ramp geometry,
+cowl, reflected shocks, or shock train is implemented — see
+[Limitations](#milestone-2-limitations) below.
+
+## theta-beta-M relation
+
+```
+tan(theta) = 2*cot(beta) * (M1^2*sin^2(beta) - 1)
+                            / (M1^2*(gamma + cos(2*beta)) + 2)
+```
+
+where `M1` = upstream Mach, `theta` = ramp/deflection angle, `beta` =
+shock angle (from the upstream flow direction), and the Mach angle
+`mu = asin(1/M1)`. For an attached shock: `mu < beta < pi/2`, and there
+are generally **two** roots (weak/strong branches) for a given
+`(M1, theta)` below the detachment limit `theta_max(M1, gamma)`. Full
+derivation and source audit: [DESIGN.md](DESIGN.md) §M2-1 – M2-3.
+
+## Weak / strong branches and detachment
+
+- **Weak branch** (`mu < beta < beta*`): the physically expected
+  operating branch for external hypersonic inlet compression surfaces.
+- **Strong branch** (`beta* < beta < pi/2`): the alternative mathematical
+  root, not the typical external-inlet operating branch (physically
+  relevant behind blunt bodies / high back-pressure conditions).
+- The two branches **merge** at `theta = theta_max(M1, gamma)` (the
+  maximum-deflection / detachment limit); for `theta > theta_max`, no
+  attached-shock solution exists (`oblique_shock`/`shock_angle` raise
+  `ValueError` rather than fabricating a result).
+
+Both branches are located via robust *bracketed* root-finding
+(`scipy.optimize.brentq`) inside intervals determined by a bracketed
+scalar minimization for `theta_max` (`scipy.optimize.minimize_scalar`,
+`method="bounded"`) — never an unconstrained Newton iteration. See
+[DESIGN.md](DESIGN.md) §M2-4 – M2-5.
+
+## Representative M1=6, theta=10° result
+
+Same upstream state as Milestone 1 (`M1=6.0, T1=220 K, p1=2500 Pa,
+gamma=1.4, R=287.05 J/(kg K)`), with an illustrative 10° compression-ramp
+angle (well inside `theta_max(M1=6) ≈ 42.4°`):
+
+| Quantity | Weak oblique | Strong oblique | M1 normal shock (ref.) |
+|---|---|---|---|
+| `beta` | 17.59° | 87.61° | 90° (by definition) |
+| `M2` | 4.648 | 0.414 | 0.404 |
+| `p2/p1` (static rise) | 3.668 | 41.760 | 41.833 |
+| **`p0,2/p0,1` (recovery)** | **0.8069** | 0.02976 | 0.02965 |
+| Stagnation-pressure loss | **19.31 %** | 97.02 % | 97.04 % |
+
+At the *same* 10° deflection, the **weak oblique shock retains ~81% of
+upstream total pressure — roughly 27x more than either the strong
+oblique root or an equivalent normal shock (~3%)**. This is the physical
+motivation for distributed oblique compression in hypersonic inlets.
+This single-ramp comparison is illustrative, not a complete inlet
+result. Full numeric detail: [DESIGN.md](DESIGN.md) §M2-10.
+
+## Run commands
+
+```bash
+python scripts/oblique_shock_study.py
+python scripts/generate_m2_figures.py
+```
+
+## Figures
+
+- **`figures/fig4_theta_beta_M_diagram.png`** — theta-beta-M diagram for
+  `M1 in {2,3,4,6,8}`: weak/strong branches, Mach-angle limit, and
+  maximum-deflection (detachment) points.
+- **`figures/fig5_beta_vs_theta_M1_6.png`** — `beta_weak(theta)` and
+  `beta_strong(theta)` at `M1=6`, showing the dual-root structure, the
+  10° representative case, and branch coalescence at `theta_max`.
+- **`figures/fig6_compression_and_recovery_vs_theta_M1_6.png`** — `p2/p1`
+  and `p0,2/p0,1` vs. `theta` at `M1=6` (weak branch, two aligned
+  panels), with the 10° case and the `M1` normal-shock reference marked.
+- **`figures/fig7_weak_vs_strong_vs_normal_M1_6_theta10.png`** — compact
+  engineering comparison of weak oblique / strong oblique / normal shock
+  at `M1=6, theta=10°`: shock angle, `M2`, `p2/p1`, and stagnation-
+  pressure loss.
+
+All figures are generated deterministically and carry the same "generic
+… not experimentally validated" caveat as the Milestone 1 figures.
+
+## Verification
+
+`tests/test_oblique_shock.py` adds 34 independent-verification tests
+(hand-derived reference formulas, not re-calls of production code),
+covering the theta-beta-M residual, weak/strong bracket ordering and
+merging at `theta_max`, detachment rejection, tangential-velocity
+conservation, direct-vs-reconstructed stagnation-pressure recovery,
+weak/strong limiting behavior, monotonicity, and no-NaN/Inf sweeps. 97
+tests pass in total (63 Milestone 1 + 34 Milestone 2). Full strategy:
+[DESIGN.md](DESIGN.md) §M2-11 – M2-12.
+
+## Milestone 2 Limitations
+
+Does **not** implement: multiple ramps / sequential oblique shocks /
+multi-shock compression; cowl-generated or reflected shocks; shock-shock
+interaction; shock trains; isolator flow; Fanno or Rayleigh flow;
+boundary-layer interaction or shock-induced separation; inlet unstart;
+mass-flow capture/spillage; combustor coupling; viscous CFD/RANS; or
+calibration against any real engine or vehicle. Geometry is limited to
+ONE ideal 2-D compression ramp producing ONE attached oblique shock. See
+[DESIGN.md](DESIGN.md) §M2-14 for the full boundary.
